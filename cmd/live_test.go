@@ -64,7 +64,7 @@ func TestFetchLiveSnapshotBuildsSnapshotFromWidgetData(t *testing.T) {
 	vrmAPIBaseURLValue = server.URL
 	vrmHTTPClient = server.Client()
 	nowFunc = func() time.Time {
-		return time.Date(2026, time.May, 14, 12, 30, 0, 0, time.FixedZone("CEST", 2*60*60))
+		return fixedNow()
 	}
 	t.Cleanup(func() {
 		vrmAPIBaseURLValue = previousBaseURL
@@ -80,8 +80,11 @@ func TestFetchLiveSnapshotBuildsSnapshotFromWidgetData(t *testing.T) {
 	if snapshot.SiteID != 42 {
 		t.Fatalf("snapshot.SiteID = %d, want 42", snapshot.SiteID)
 	}
-	if snapshot.ObservedAt.Format(time.RFC3339) != "2026-05-14T12:30:00+02:00" {
-		t.Fatalf("snapshot.ObservedAt = %s", snapshot.ObservedAt.Format(time.RFC3339))
+	if !snapshot.ObservedAt.Equal(fixedNow()) {
+		t.Fatalf("snapshot.ObservedAt = %s, want instant %s", snapshot.ObservedAt.Format(time.RFC3339), fixedNow().Format(time.RFC3339))
+	}
+	if snapshot.ObservedAt.Location() != time.Local {
+		t.Fatalf("snapshot.ObservedAt location = %s, want Local", snapshot.ObservedAt.Location())
 	}
 	if snapshot.DataAge != "35s" {
 		t.Fatalf("snapshot.DataAge = %q, want 35s", snapshot.DataAge)
@@ -169,7 +172,7 @@ func TestFetchLiveSnapshotWarnsWhenGridVoltageIsMissing(t *testing.T) {
 func TestRenderLiveSnapshotOmitsGenericStaleWarningWhenDetailedWarningExists(t *testing.T) {
 	snapshot := &liveSnapshot{
 		SiteID:          42,
-		ObservedAt:      time.Date(2026, time.May, 14, 12, 30, 0, 0, time.FixedZone("CEST", 2*60*60)),
+		ObservedAt:      fixedNow().Local(),
 		DataAge:         "35s",
 		BatterySOC:      "78%",
 		BatteryVoltage:  "52.4 V",

@@ -167,13 +167,13 @@ func TestOverviewCommandHumanOutputUsesCustomNameAndSummary(t *testing.T) {
 	assertContainsAll(t, output,
 		"System overview for site 42",
 		"Summary",
-		"Updated    2026-05-14 12:30:00 CEST",
+		"Updated    "+formatDisplayTime(fixedNow()),
 		"Battery    78%",
 		"Grid in    400 W",
 		"Devices",
 		"[1] House Battery",
 		"Product    SmartShunt",
-		"Last seen  2025-05-14 12:00:00 CEST",
+		"Last seen  "+formatUnixTimestamp(1747216800),
 	)
 	if strings.Contains(output, "[1] Battery monitor") {
 		t.Fatalf("overview output ignored custom name: %q", output)
