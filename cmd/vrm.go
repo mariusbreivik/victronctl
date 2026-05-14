@@ -17,6 +17,11 @@ const (
 	defaultTokenEnv = "VICTRON_VRM_TOKEN"
 )
 
+var (
+	vrmAPIBaseURLValue = vrmAPIBaseURL
+	vrmHTTPClient      = &http.Client{Timeout: 10 * time.Second}
+)
+
 type apiToken struct {
 	Value  string
 	Source string
@@ -126,7 +131,7 @@ func resolveToken() (*apiToken, error) {
 }
 
 func newAuthenticatedRequest(method, path, token string) (*http.Request, error) {
-	request, err := http.NewRequest(method, vrmAPIBaseURL+path, nil)
+	request, err := http.NewRequest(method, vrmAPIBaseURLValue+path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build request %s %s: %w", method, path, err)
 	}
@@ -242,10 +247,9 @@ func fetchJSON(token, method, path string, target any) error {
 		return err
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	response, err := client.Do(request)
+	response, err := vrmHTTPClient.Do(request)
 	if err != nil {
-		return fmt.Errorf("request %s%s: %w", vrmAPIBaseURL, path, err)
+		return fmt.Errorf("request %s%s: %w", vrmAPIBaseURLValue, path, err)
 	}
 	defer response.Body.Close()
 
