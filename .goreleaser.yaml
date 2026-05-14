@@ -1,0 +1,47 @@
+version: 2
+
+project_name: victronctl
+
+before:
+  hooks:
+    - go test ./...
+
+builds:
+  - id: victronctl
+    main: ./main.go
+    binary: victronctl
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/mariusbreivik/victronctl/cmd.version={{ .Version }} -X github.com/mariusbreivik/victronctl/cmd.commit={{ .Commit }} -X github.com/mariusbreivik/victronctl/cmd.date={{ .Date }}
+
+archives:
+  - id: victronctl
+    formats:
+      - tar.gz
+      - zip
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'

@@ -40,3 +40,30 @@ TUI controls:
 - `q` or `ctrl+c` to quit
 - `tab`, `h`, `j`, `k`, `l`, or arrow keys to switch panels
 - `c` to toggle compact and expanded layouts
+
+## Releases
+
+Releases are created manually from GitHub Actions using the `Release` workflow.
+
+Release process:
+- Merge the changes you want into `main`
+- Open the `Release` workflow in GitHub Actions
+- Run it manually and choose a version bump strategy
+
+Available bump strategies:
+- `auto`: derive the next version from conventional commits since the last tag
+- `patch`: increment the patch version
+- `minor`: increment the minor version
+- `major`: increment the major version
+
+In `auto` mode:
+- commits with `BREAKING CHANGE` or `type!:` trigger a major release
+- commits with `feat:` trigger a minor release
+- all other changes produce a patch release
+
+The workflow will:
+- run `go test ./...`
+- run `go build ./...`
+- create and push the next `v*` tag from `main`
+- run GoReleaser
+- publish release artifacts to GitHub Releases
