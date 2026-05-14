@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump strategy
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch tags
+        run: git fetch --force --tags origin
+
+      - name: Set up Go
+        uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Determine next version
+        id: version
+        shell: bash
+        env:
+          BUMP_INPUT: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+
+          head_tag="$(git tag --points-at HEAD --list 'v*' | head -n 1)"
+          if [[ -n "$head_tag" ]]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "latest_tag=$head_tag" >> "$GITHUB_OUTPUT"
+            echo "next_tag=$head_tag" >> "$GITHUB_OUTPUT"
+            echo "create_tag=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          latest_tag="$(git tag --list 'v*' --sort=-version:refname | head -n 1)"
+          if [[ -n "$latest_tag" ]]; then
+            range="${latest_tag}..HEAD"
+            commit_messages="$(git log --format=%s "$range")"
+            commit_bodies="$(git log --format=%b "$range")"
+            base_version="${latest_tag#v}"
+          else
+            range="HEAD"
+            commit_messages="$(git log --format=%s)"
+            commit_bodies="$(git log --format=%b)"
+            base_version="0.0.0"
+          fi
+
+          if [[ -z "$commit_messages" ]]; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          bump="$BUMP_INPUT"
+          if [[ "$bump" == "auto" ]]; then
+            bump="patch"
+            if printf '%s\n%s' "$commit_messages" "$commit_bodies" | grep -Eq 'BREAKING CHANGE|^[^:]+(\([^)]*\))?!:'; then
+              bump="major"
+            elif printf '%s\n' "$commit_messages" | grep -Eq '^feat(\([^)]*\))?:'; then
+              bump="minor"
+            fi
+          fi
+
+          IFS='.' read -r major minor patch <<< "$base_version"
+          case "$bump" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          next_tag="v${major}.${minor}.${patch}"
+
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "latest_tag=$latest_tag" >> "$GITHUB_OUTPUT"
+          echo "next_tag=$next_tag" >> "$GITHUB_OUTPUT"
+          echo "create_tag=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: steps.version.outputs.release == 'true' && steps.version.outputs.create_tag == 'true'
+        env:
+          NEXT_TAG: ${{ steps.version.outputs.next_tag }}
+        run: |
+          git tag "$NEXT_TAG"
+          git push origin "refs/tags/$NEXT_TAG"
+
+      - name: Release with GoReleaser
+        if: steps.version.outputs.release == 'true'
+        uses: goreleaser/goreleaser-action@v7.2.1
+        with:
+          distribution: goreleaser
+          version: v2.15.4
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
