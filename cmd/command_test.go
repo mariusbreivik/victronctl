@@ -54,5 +54,5 @@ func decodeJSONOutput[T any](t *testing.T, output string) T {
 }
 
 func fixedNow() time.Time {
-	return time.Date(2026, time.May, 14, 12, 30, 0, 0, time.FixedZone("CEST", 2*60*60))
+	return time.Date(2026, time.May, 14, 10, 30, 0, 0, time.UTC)
 }

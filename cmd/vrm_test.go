@@ -189,8 +189,9 @@ func TestResolveSiteIDRequiresExplicitSiteForMultipleInstallations(t *testing.T)
 func TestFormattingHelpers(t *testing.T) {
 	timeValue := time.Date(2026, time.May, 14, 13, 0, 0, 0, time.FixedZone("CEST", 2*60*60))
 	formattedTime := formatDisplayTime(timeValue)
-	if !strings.Contains(formattedTime, "2026-05-14 13:00:00 CEST") {
-		t.Fatalf("formatDisplayTime = %q", formattedTime)
+	expectedTime := timeValue.Local().Format("2006-01-02 15:04:05 MST")
+	if formattedTime != expectedTime {
+		t.Fatalf("formatDisplayTime = %q, want %q", formattedTime, expectedTime)
 	}
 
 	if got, want := maskToken("abcdefghij"), "ab******ij"; got != want {
