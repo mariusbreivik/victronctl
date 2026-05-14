@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var nowFunc = time.Now
+
 type liveOptions struct {
 	siteID       int
 	once         bool
@@ -123,7 +125,7 @@ func fetchLiveSnapshot(token string, siteID int) (*liveSnapshot, error) {
 
 	snapshot := &liveSnapshot{
 		SiteID:          siteID,
-		ObservedAt:      time.Now().Local(),
+		ObservedAt:      nowFunc().Local(),
 		DataAge:         "unknown",
 		BatterySOC:      "n/a",
 		BatteryVoltage:  "n/a",
