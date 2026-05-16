@@ -116,12 +116,12 @@ func TestResolveSiteIDAutoSelectsSingleInstallation(t *testing.T) {
 		case "/users/me":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"success": true,
-				"user":    map[string]any{"id": 7, "name": "Marius", "email": "marius@example.com"},
+				"user":    map[string]any{"id": 7, "name": "Test User", "email": "user@example.test"},
 			})
 		case "/users/7/installations":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"success": true,
-				"records": []map[string]any{{"idSite": 42, "name": "Cabin", "identifier": "ABC", "timezone": "Europe/Oslo", "accessLevel": 3}},
+				"records": []map[string]any{{"idSite": 42, "name": "Site Alpha", "identifier": "SITE-ALPHA", "timezone": "Europe/Oslo", "accessLevel": 3}},
 			})
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -154,7 +154,7 @@ func TestResolveSiteIDRequiresExplicitSiteForMultipleInstallations(t *testing.T)
 		case "/users/me":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"success": true,
-				"user":    map[string]any{"id": 7, "name": "Marius", "email": "marius@example.com"},
+				"user":    map[string]any{"id": 7, "name": "Test User", "email": "user@example.test"},
 			})
 		case "/users/7/installations":
 			_ = json.NewEncoder(w).Encode(map[string]any{

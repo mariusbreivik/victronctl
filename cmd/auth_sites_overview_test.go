@@ -19,7 +19,7 @@ func TestAuthCommandJSONOutput(t *testing.T) {
 		if got, want := r.Header.Get("x-authorization"), "Token secret-token"; got != want {
 			t.Fatalf("auth header = %q, want %q", got, want)
 		}
-		_, _ = fmt.Fprint(w, `{"success":true,"user":{"id":7,"name":"Marius","email":"marius@example.com"}}`)
+		_, _ = fmt.Fprint(w, `{"success":true,"user":{"id":7,"name":"Test User","email":"user@example.test"}}`)
 	})
 
 	output, err := runCobraCommand(t, []string{"--json"}, newAuthCommand)
@@ -40,7 +40,7 @@ func TestAuthCommandJSONOutput(t *testing.T) {
 		} `json:"token"`
 	}](t, output)
 
-	if payload.User.ID != 7 || payload.User.Name != "Marius" || payload.User.Email != "marius@example.com" {
+	if payload.User.ID != 7 || payload.User.Name != "Test User" || payload.User.Email != "user@example.test" {
 		t.Fatalf("unexpected auth payload user: %+v", payload.User)
 	}
 	if payload.Token.Source != defaultTokenEnv || payload.Token.Masked != "se********en" {
@@ -51,7 +51,7 @@ func TestAuthCommandJSONOutput(t *testing.T) {
 func TestAuthCommandHumanOutput(t *testing.T) {
 	t.Setenv(defaultTokenEnv, "abcd1234")
 	withMockVRMServer(t, func(w http.ResponseWriter, r *http.Request) {
-		_, _ = fmt.Fprint(w, `{"success":true,"user":{"id":9,"name":"Alex","email":"alex@example.com"}}`)
+		_, _ = fmt.Fprint(w, `{"success":true,"user":{"id":9,"name":"Demo User","email":"demo@example.test"}}`)
 	})
 
 	output, err := runCobraCommand(t, nil, newAuthCommand)
@@ -61,7 +61,7 @@ func TestAuthCommandHumanOutput(t *testing.T) {
 
 	assertContainsAll(t, output,
 		"Authentication successful",
-		"User      Alex <alex@example.com>",
+		"User      Demo User <demo@example.test>",
 		"User ID   9",
 		"Token     VICTRON_VRM_TOKEN=ab****34",
 	)
@@ -75,9 +75,9 @@ func TestSitesCommandJSONOutput(t *testing.T) {
 	withMockVRMServer(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/users/me":
-			_, _ = fmt.Fprint(w, `{"success":true,"user":{"id":7,"name":"Marius","email":"marius@example.com"}}`)
+			_, _ = fmt.Fprint(w, `{"success":true,"user":{"id":7,"name":"Test User","email":"user@example.test"}}`)
 		case "/users/7/installations":
-			_, _ = fmt.Fprint(w, `{"success":true,"records":[{"idSite":42,"name":"Cabin","identifier":"abc123","timezone":"Europe/Oslo","accessLevel":3},{"idSite":43,"name":"Home","identifier":"def456","timezone":"Europe/Oslo","accessLevel":1}]}`)
+			_, _ = fmt.Fprint(w, `{"success":true,"records":[{"idSite":42,"name":"Site Alpha","identifier":"SITE-ALPHA","timezone":"Europe/Oslo","accessLevel":3},{"idSite":43,"name":"Site Beta","identifier":"SITE-BETA","timezone":"Europe/Oslo","accessLevel":1}]}`)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -94,10 +94,10 @@ func TestSitesCommandJSONOutput(t *testing.T) {
 		Sites   []installationSite `json:"sites"`
 	}](t, output)
 
-	if payload.User["name"] != "Marius" {
+	if payload.User["name"] != "Test User" {
 		t.Fatalf("unexpected user payload: %+v", payload.User)
 	}
-	if len(payload.Sites) != 2 || payload.Sites[0].IDSite != 42 || payload.Sites[1].Name != "Home" {
+	if len(payload.Sites) != 2 || payload.Sites[0].IDSite != 42 || payload.Sites[1].Name != "Site Beta" {
 		t.Fatalf("unexpected sites payload: %+v", payload.Sites)
 	}
 }
@@ -107,7 +107,7 @@ func TestSitesCommandHumanOutputWhenNoSites(t *testing.T) {
 	withMockVRMServer(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/users/me":
-			_, _ = fmt.Fprint(w, `{"success":true,"user":{"id":7,"name":"Marius","email":"marius@example.com"}}`)
+			_, _ = fmt.Fprint(w, `{"success":true,"user":{"id":7,"name":"Test User","email":"user@example.test"}}`)
 		case "/users/7/installations":
 			_, _ = fmt.Fprint(w, `{"success":true,"records":[]}`)
 		default:
@@ -121,7 +121,7 @@ func TestSitesCommandHumanOutputWhenNoSites(t *testing.T) {
 	}
 
 	assertContainsAll(t, output,
-		"Sites for Marius <marius@example.com>",
+		"Sites for Test User <user@example.test>",
 		"No sites found.",
 	)
 }
@@ -171,7 +171,7 @@ func TestOverviewCommandHumanOutputUsesCustomNameAndSummary(t *testing.T) {
 		"Battery    78%",
 		"Grid in    400 W",
 		"Devices",
-		"[1] House Battery",
+		"[1] Primary Battery",
 		"Product    SmartShunt",
 		"Last seen  "+formatUnixTimestamp(1747216800),
 	)
@@ -202,7 +202,7 @@ func overviewFixtureHandler(t *testing.T) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/installations/42/system-overview":
-			_, _ = fmt.Fprint(w, `{"success":true,"records":{"devices":[{"name":"Battery monitor","customName":"House Battery","productName":"SmartShunt","firmwareVersion":"1.0.0","lastConnection":1747216800,"instance":3,"idDeviceType":2},{"name":"Solar charger","customName":null,"productName":"SmartSolar","firmwareVersion":"2.0.0","lastConnection":1747216800,"instance":4,"idDeviceType":4},{"name":"Inverter","customName":null,"productName":"MultiPlus","firmwareVersion":"3.0.0","lastConnection":1747216800,"instance":1,"idDeviceType":1}]}}`)
+			_, _ = fmt.Fprint(w, `{"success":true,"records":{"devices":[{"name":"Battery monitor","customName":"Primary Battery","productName":"SmartShunt","firmwareVersion":"1.0.0","lastConnection":1747216800,"instance":3,"idDeviceType":2},{"name":"Solar charger","customName":null,"productName":"SmartSolar","firmwareVersion":"2.0.0","lastConnection":1747216800,"instance":4,"idDeviceType":4},{"name":"Inverter","customName":null,"productName":"MultiPlus","firmwareVersion":"3.0.0","lastConnection":1747216800,"instance":1,"idDeviceType":1}]}}`)
 		case r.URL.Path == "/installations/42/widgets/BatterySummary":
 			writeWidgetResponse(w, map[string]widgetAttributeSpec{
 				"SOC": {FormattedWithUnit: "78%", Value: "78"},
